@@ -34,7 +34,7 @@ def Sampling(history_data, train_history, test_history, item_num, train_sample_n
         for t in range(train_sample_num):
             j = np.random.randint(item_num)
             while (u, j) in history_data:
-                j = np.random.randint(train_sample_num)
+                j = np.random.randint(item_num)
             train_data.append((u, i, j))
 
     for u, i in tqdm(test_history, desc="test_history"):
@@ -42,7 +42,7 @@ def Sampling(history_data, train_history, test_history, item_num, train_sample_n
         for t in range(test_sample_num):
             j = np.random.randint(item_num)
             while (u, j) in history_data:
-                j = np.random.randint(train_sample_num)
+                j = np.random.randint(item_num)
             test_data.append((u, j))
 
     return train_data, test_data
