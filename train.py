@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.utils.data as data
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
-
+from tqdm import tqdm
 
 def LoadData():
     train_data = pd.read_csv('./train_data', delim_whitespace=True,
@@ -71,9 +71,9 @@ def evaluate(model, test_loader, top_k):
     Ndcg = []
 
     for u, i in test_loader:
-        prediction_i, _ = model(u, i, i)
+        prediction_i, _ = model(u.cuda(), i.cuda(), i.cuda())
         _, index = torch.topk(prediction_i, top_k)
-        recommends = torch.take(i, index).tolist()
+        recommends = torch.take(i.cuda(), index).tolist()
 
         positive_item = i[0].item()
 
@@ -101,21 +101,19 @@ if __name__ == '__main__':
                                   shuffle=False, num_workers=0)
 
     model = BPR(user_num, item_num, factor_num)
+    model = model.cuda()
 
     optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=lamda)
 
     for epoch in range(epochs):
         model.train()
 
-        count = 0
-        for user, item_i, item_j in train_loader:
+        for user, item_i, item_j in tqdm(train_loader):
             model.zero_grad()
-            prediction_i, prediction_j = model(user, item_i, item_j)
+            prediction_i, prediction_j = model(user.cuda(), item_i.cuda(), item_j.cuda())
             loss = -(prediction_i - prediction_j).sigmoid().log().sum()
             loss.backward()
             optimizer.step()
-            count = count + 1
-            print(count)
 
         model.eval()
         HR, NDCG = evaluate(model, test_loader, top_k)
