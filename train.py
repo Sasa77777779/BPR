@@ -50,16 +50,14 @@ class BPR(nn.Module):
         nn.init.normal_(self.embed_item.weight, std=0.01)
 
     # user,item_i,item_j都是矩阵
-    def forward(self, user, item_i, item_j):
+    def forward(self, user, item_i):
         user = self.embed_user(user)
         item_i = self.embed_item(item_i)
-        item_j = self.embed_item(item_j)
 
         # 得到item矩阵中每个物品的得分
         prediction_i = (user * item_i).sum(dim=-1)
-        prediction_j = (user * item_j).sum(dim=-1)
 
-        return prediction_i, prediction_j
+        return prediction_i
 
 
 def hit(gt_item, pred_items):
@@ -80,7 +78,7 @@ def evaluate(model, test_loader, top_k):
     Ndcg = []
 
     for u, i in test_loader:
-        prediction_i, _ = model(u.to(device=device), i.to(device=device), i.to(device=device))
+        prediction_i = model(u.to(device=device), i.to(device=device))
         _, index = torch.topk(prediction_i, top_k)
         recommends = torch.take(i.to(device=device), index).tolist()
 
@@ -137,8 +135,8 @@ if __name__ == '__main__':
 
         for user, item_i, item_j in tqdm(train_loader):
             model.zero_grad()
-            prediction_i, prediction_j = model(user.to(device=device), item_i.to(device=device),
-                                               item_j.to(device=device))
+            prediction_i = model(user.to(device=device), item_i.to(device=device))
+            prediction_j = model(user.to(device=device), item_j.to(device=device))
             loss = -(prediction_i - prediction_j).sigmoid().log().sum()
             loss.backward()
             optimizer.step()
