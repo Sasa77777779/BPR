@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 device = 'cpu'
 
+
 def LoadData():
     train_data = pd.read_csv('./train_data', delim_whitespace=True,
                              header=None, names=['user', 'item_i', 'item_j'], usecols=['user', 'item_i', 'item_j'],
