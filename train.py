@@ -8,6 +8,8 @@ import torch.backends.cudnn as cudnn
 import torch.optim as optim
 from tqdm import tqdm
 
+device = 'cpu'
+
 def LoadData():
     train_data = pd.read_csv('./train_data', delim_whitespace=True,
                              header=None, names=['user', 'item_i', 'item_j'], usecols=['user', 'item_i', 'item_j'],
@@ -71,9 +73,9 @@ def evaluate(model, test_loader, top_k):
     Ndcg = []
 
     for u, i in test_loader:
-        prediction_i, _ = model(u.cuda(), i.cuda(), i.cuda())
+        prediction_i, _ = model(u.to(device=device), i.to(device=device), i.to(device=device))
         _, index = torch.topk(prediction_i, top_k)
-        recommends = torch.take(i.cuda(), index).tolist()
+        recommends = torch.take(i.to(device=device), index).tolist()
 
         positive_item = i[0].item()
 
@@ -101,7 +103,7 @@ if __name__ == '__main__':
                                   shuffle=False, num_workers=0)
 
     model = BPR(user_num, item_num, factor_num)
-    model = model.cuda()
+    model = model.to(device=device)
 
     optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=lamda)
 
@@ -110,7 +112,7 @@ if __name__ == '__main__':
 
         for user, item_i, item_j in tqdm(train_loader):
             model.zero_grad()
-            prediction_i, prediction_j = model(user.cuda(), item_i.cuda(), item_j.cuda())
+            prediction_i, prediction_j = model(user.to(device=device), item_i.to(device=device), item_j.to(device=device))
             loss = -(prediction_i - prediction_j).sigmoid().log().sum()
             loss.backward()
             optimizer.step()
