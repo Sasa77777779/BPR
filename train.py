@@ -6,9 +6,11 @@ import torch.nn as nn
 import torch.utils.data as data
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
+from torch.utils.data import Dataset
 from tqdm import tqdm
 
 device = 'cpu'
+
 
 def LoadData():
     train_data = pd.read_csv('./train_data', delim_whitespace=True,
@@ -19,13 +21,18 @@ def LoadData():
                             header=None, names=['user', 'item'], usecols=['user', 'item'],
                             dtype={'user': np.int32, 'item': np.int32})
 
+    train_history = pd.read_csv('./train_history.txt', delim_whitespace=True,
+                                header=None, names=['user', 'item'], usecols=['user', 'item'],
+                                dtype={'user': np.int32, 'item_i': np.int32, 'item_j': np.int32})
+
     user_num = train_data['user'].max() + 1
     item_num = train_data['item_i'].max() + 1
 
     train_data = train_data.values.tolist()
     test_data = test_data.values.tolist()
+    train_history = train_history.values.tolist()
 
-    return train_data, test_data, user_num, item_num
+    return train_data, test_data, user_num, item_num, train_history
 
 
 class BPR(nn.Module):
@@ -85,6 +92,24 @@ def evaluate(model, test_loader, top_k):
     return np.mean(Hit), np.mean(Ndcg)
 
 
+class MyDataset(Dataset):
+    def __init__(self, history, item_number):
+        super().__init__()
+        self.history = history
+        self.history_set = {(x, y) for x, y in history}
+        self.item_number = item_number
+
+    def __len__(self):
+        return len(self.history)
+
+    def __getitem__(self, index):
+        u, i = self.history[index]
+        j = np.random.randint(self.item_number)
+        while (u, j) in self.history_set:
+            j = np.random.randint(self.item_number)
+        return u, i, j
+
+
 if __name__ == '__main__':
     lr = 0.01
     lamda = 0.001
@@ -95,9 +120,9 @@ if __name__ == '__main__':
 
     cudnn.benchmark = True
 
-    train_data, test_data, user_num, item_num = LoadData()
+    train_data, test_data, user_num, item_num, train_history = LoadData()
 
-    train_loader = data.DataLoader(train_data, batch_size=batch_size,
+    train_loader = data.DataLoader(MyDataset(train_history, item_num), batch_size=batch_size,
                                    shuffle=True, num_workers=4)
     test_loader = data.DataLoader(test_data, batch_size=100,
                                   shuffle=False, num_workers=0)
@@ -112,7 +137,8 @@ if __name__ == '__main__':
 
         for user, item_i, item_j in tqdm(train_loader):
             model.zero_grad()
-            prediction_i, prediction_j = model(user.to(device=device), item_i.to(device=device), item_j.to(device=device))
+            prediction_i, prediction_j = model(user.to(device=device), item_i.to(device=device),
+                                               item_j.to(device=device))
             loss = -(prediction_i - prediction_j).sigmoid().log().sum()
             loss.backward()
             optimizer.step()

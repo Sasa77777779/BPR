@@ -31,7 +31,7 @@ def Readfile():
 def Sampling(history_data, train_history, test_history, item_num, train_sample_num, test_sample_num):
     train_data = []
     test_data = []
-    history_data_set = set([(x, y) for x, y in history_data])
+    history_data_set = {(x, y) for x, y in history_data}
     for u, i in tqdm(train_history, desc="train_history"):
         for t in range(train_sample_num):
             j = np.random.randint(item_num)
