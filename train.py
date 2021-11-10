@@ -112,7 +112,7 @@ if __name__ == '__main__':
     lr = 0.01
     lamda = 0.001
     batch_size = 4096
-    epochs = 5
+    epochs = 30
     top_k = 10
     factor_num = 16
 
