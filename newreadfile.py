@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+
 def Readfile():
     history_data = pd.read_csv('./ml-100k/u.data', delim_whitespace=True,
                                header=None, names=['user', 'item'], usecols=['user', 'item'],
@@ -30,10 +31,11 @@ def Readfile():
 def Sampling(history_data, train_history, test_history, item_num, train_sample_num, test_sample_num):
     train_data = []
     test_data = []
+    history_data_set = set([(x, y) for x, y in history_data])
     for u, i in tqdm(train_history, desc="train_history"):
         for t in range(train_sample_num):
             j = np.random.randint(item_num)
-            while (u, j) in history_data:
+            while (u, j) in history_data_set:
                 j = np.random.randint(item_num)
             train_data.append((u, i, j))
 
@@ -41,7 +43,7 @@ def Sampling(history_data, train_history, test_history, item_num, train_sample_n
         test_data.append((u, i))
         for t in range(test_sample_num):
             j = np.random.randint(item_num)
-            while (u, j) in history_data:
+            while (u, j) in history_data_set:
                 j = np.random.randint(item_num)
             test_data.append((u, j))
 
@@ -64,3 +66,7 @@ if __name__ == '__main__':
 
     for u, i in test_data:
         fp2.write(str(u) + '\t' + str(i) + '\n')
+
+    with open("./train_history.txt", "w") as fp:
+        for u, i in train_history:
+            fp.write(f"{u}\t{i}\n")
